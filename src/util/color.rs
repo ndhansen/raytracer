@@ -1,4 +1,4 @@
-use crate::util::vector_3d::Vector3D;
+use crate::geometry::vector_3d::Vector3D;
 
 /// Color type, to distinguish colors from vectors
 pub type Color = Vector3D;

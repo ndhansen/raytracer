@@ -4,7 +4,7 @@ use std::ops;
 use approx::{abs_diff_eq, relative_eq, AbsDiffEq, RelativeEq};
 
 /// A 3D point
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Vector3D {
     /// A 3D vector must have 3 points
     x: f64,
@@ -65,11 +65,10 @@ impl Vector3D {
             z: self.x * second_vector.y - self.y * second_vector.x,
         }
     }
+}
 
-    /// Calcualte the unit vector
-    pub fn unit_vector(&self) -> Vector3D {
-        self / self.length()
-    }
+pub fn unit_vector(vec: &Vector3D) -> Vector3D {
+    vec / vec.length()
 }
 
 impl fmt::Display for Vector3D {
@@ -443,7 +442,7 @@ mod tests {
     #[test]
     fn unit_vector_from_vector() {
         let vec = Vector3D::new(1.3, -2.4, 5.0);
-        let normalized = vec.unit_vector();
+        let normalized = unit_vector(&vec);
         let expected = Vector3D::new(0.22821, -0.42131, 0.87773);
         assert_relative_eq!(expected, normalized, epsilon = 0.001);
     }
