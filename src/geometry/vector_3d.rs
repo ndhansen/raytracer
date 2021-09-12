@@ -54,21 +54,31 @@ impl Vector3D {
 
     /// Calculate the dot product of the vector
     pub fn dot(&self, second_vector: &Vector3D) -> f64 {
-        self.x * second_vector.x + self.y * second_vector.y + self.z * second_vector.z
+        dot(self, second_vector)
     }
 
     /// Calcualte the cross product of two vectors
     pub fn cross(&self, second_vector: &Vector3D) -> Vector3D {
-        Vector3D {
-            x: self.y * second_vector.z - self.z * second_vector.y,
-            y: self.z * second_vector.x - self.x * second_vector.z,
-            z: self.x * second_vector.y - self.y * second_vector.x,
-        }
+        cross(self, second_vector)
     }
 }
 
 pub fn unit_vector(vec: &Vector3D) -> Vector3D {
     vec / vec.length()
+}
+
+/// Calculate the dot product of the vector
+pub fn dot(first: &Vector3D, second: &Vector3D) -> f64 {
+    first.x * second.x + first.y * second.y + first.z * second.z
+}
+
+/// Calcualte the cross product of two vectors
+pub fn cross(first: &Vector3D, second: &Vector3D) -> Vector3D {
+    Vector3D {
+        x: first.y * second.z - first.z * second.y,
+        y: first.z * second.x - first.x * second.z,
+        z: first.x * second.y - first.y * second.x,
+    }
 }
 
 impl fmt::Display for Vector3D {

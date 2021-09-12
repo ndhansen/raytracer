@@ -1,15 +1,42 @@
 pub mod geometry;
 pub mod util;
 
-use geometry::{ray::Ray, vector_3d};
+use geometry::{
+    ray::Ray,
+    vector_3d::{self, dot},
+};
 use util::color::Color;
 
 use crate::{geometry::vector_3d::Vector3D, util::point::Point3D};
 
+fn hit_sphere(center: &Point3D, radius: f64, ray: &Ray) -> Option<f64> {
+    let oc = ray.origin - *center;
+    let a = vector_3d::dot(&ray.direction, &ray.direction);
+    let b = 2.0 * dot(&oc, &ray.direction);
+    let c = dot(&oc, &oc) - (radius * radius);
+    let discriminant = (b * b) - (4.0 * a * c);
+    if discriminant < 0.0 {
+        None
+    } else {
+        Some((-b - discriminant.sqrt()) / (2.0 * a))
+    }
+}
+
 fn ray_color(ray: &Ray) -> Color {
-    let unit_direction = vector_3d::unit_vector(&ray.direction);
-    let t = 0.5 * (unit_direction.y() + 1.0);
-    (1.0 - t) * Color::new(1.0, 1.0, 1.0) + t * Color::new(0.5, 0.7, 1.0)
+    let sphere = Point3D::new(0.0, 0.0, -1.0);
+    let hit = hit_sphere(&sphere, 0.5, ray);
+    match hit {
+        Some(t) => {
+            let normal = ray.at(t) - Vector3D::new(0.0, 0.0, -1.0);
+            let normal = vector_3d::unit_vector(&normal);
+            return 0.5 * Color::new(normal.x() + 1.0, normal.y() + 1.0, normal.z() + 1.0);
+        }
+        None => {
+            let unit_direction = vector_3d::unit_vector(&ray.direction);
+            let t = 0.5 * (unit_direction.y() + 1.0);
+            return (1.0 - t) * Color::new(1.0, 1.0, 1.0) + t * Color::new(0.5, 0.7, 1.0);
+        }
+    }
 }
 
 fn main() {
