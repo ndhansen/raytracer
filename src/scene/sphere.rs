@@ -8,7 +8,7 @@ pub struct Sphere {
 }
 
 impl Sphere {
-    fn new(center: Point3D, radius: f64) -> Sphere {
+    pub fn new(center: Point3D, radius: f64) -> Sphere {
         Sphere {
             center,
             radius,
@@ -17,7 +17,7 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, record: &mut HitRecord) -> bool {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc = ray.origin - self.center;
         let a = ray.direction.length_squared();
         let half_b = vector_3d::dot(&oc, &ray.direction);
@@ -25,7 +25,7 @@ impl Hittable for Sphere {
 
         let discriminant = (half_b * half_b) - (a * c);
         if discriminant < 0.0 {
-            return false;
+            return None;
         }
         let discriminant_root = discriminant.sqrt();
 
@@ -34,15 +34,16 @@ impl Hittable for Sphere {
         if root < t_min || t_max < root {
             root = (-half_b + discriminant_root) / a;
             if root < t_min || t_max < root {
-                return false;
+                return None;
             }
         }
 
+        let mut record = HitRecord::empty();
         record.t = root;
         record.p = ray.at(record.t);
         let outward_normal = (record.p - self.center) / self.radius;
         record.set_face_normal(ray, &outward_normal);
 
-        return true;
+        return Some(record)
     }
 }
