@@ -2,6 +2,7 @@ use core::fmt;
 use std::ops;
 
 use approx::{abs_diff_eq, relative_eq, AbsDiffEq, RelativeEq};
+use rand::Rng;
 
 /// A 3D point
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -25,6 +26,29 @@ impl Vector3D {
     /// Creates a new point given all coordinates in space.
     pub fn new(x: f64, y: f64, z: f64) -> Vector3D {
         Vector3D { x, y, z }
+    }
+
+    pub fn random(min: f64, max: f64) -> Vector3D {
+        let mut generator = rand::thread_rng();
+        Vector3D {
+            x: generator.gen_range(min..max),
+            y: generator.gen_range(min..max),
+            z: generator.gen_range(min..max),
+        }
+    }
+
+    pub fn random_in_unit_sphere() -> Vector3D {
+        loop {
+            let vec = Vector3D::random(-1.0, 1.0);
+            if vec.length_squared() >= 1.0 {
+                continue;
+            }
+            return vec;
+        }
+    }
+
+    pub fn random_unit_vector() -> Vector3D {
+        unit_vector(&Vector3D::random_in_unit_sphere())
     }
 
     /// Get the x-axis coordinate
@@ -60,6 +84,16 @@ impl Vector3D {
     /// Calcualte the cross product of two vectors
     pub fn cross(&self, second_vector: &Vector3D) -> Vector3D {
         cross(self, second_vector)
+    }
+
+    /// Returns zero if the vector is close to zero in all dimensions
+    pub fn near_zero(&self) -> bool {
+        const MARGIN: f64 = 1e-8;
+        (self.x.abs() < MARGIN) && (self.y.abs() < MARGIN) && (self.z.abs() < MARGIN)
+    }
+
+    pub fn reflect(&self, other: &Vector3D) -> Vector3D {
+        *self - (2.0 * self.dot(other) * other)
     }
 }
 

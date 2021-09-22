@@ -1,17 +1,19 @@
 use crate::{geometry::{ray::Ray, vector_3d}, util::point::Point3D};
 
-use super::hittable::{HitRecord, Hittable};
+use super::{hit_record::HitRecord, hittable::{Hittable}, materials::Material};
 
 pub struct Sphere {
     center: Point3D,
     radius: f64,
+    material: Box<dyn Material>,
 }
 
 impl Sphere {
-    pub fn new(center: Point3D, radius: f64) -> Sphere {
+    pub fn new(center: Point3D, radius: f64, material: Box<dyn Material>) -> Sphere {
         Sphere {
             center,
             radius,
+            material,
         }
     }
 }
@@ -38,12 +40,16 @@ impl Hittable for Sphere {
             }
         }
 
-        let mut record = HitRecord::empty();
-        record.t = root;
-        record.p = ray.at(record.t);
-        let outward_normal = (record.p - self.center) / self.radius;
-        record.set_face_normal(ray, &outward_normal);
+        let point = ray.at(root);
+        let outward_normal = (point - self.center) / self.radius;
+        let record = HitRecord::new(
+            ray.at(root),
+            outward_normal,
+            &*self.material,
+            root,
+            &ray
+        );
 
-        return Some(record)
+        Some(record)
     }
 }

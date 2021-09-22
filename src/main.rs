@@ -2,63 +2,121 @@ pub mod geometry;
 pub mod scene;
 pub mod util;
 
-use std::rc::Rc;
+use std::sync::atomic::{AtomicI32, Ordering};
 
-use geometry::{ray::Ray, vector_3d};
+use geometry::{
+    ray::Ray,
+    vector_3d,
+};
+use rand::Rng;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use scene::hittable::Hittable;
 use util::color::Color;
-use rand::Rng;
 
-use crate::{scene::sphere::Sphere, util::{camera::Camera, point::Point3D}};
+use crate::{
+    scene::{
+        materials::{Lambertian, Metal},
+        sphere::Sphere,
+    },
+    util::{camera::Camera, color::Pixel, point::Point3D},
+};
 
-fn ray_color(ray: &Ray, world: &dyn Hittable) -> Color {
-    match world.hit(ray, 0.0, f64::INFINITY) {
-        Some(record) => {
-            return 0.5 * (record.normal + Color::new(1.0, 1.0, 1.0));
-        }
-        None => {
-            let unit_direction = vector_3d::unit_vector(&ray.direction);
-            let t = 0.5 * (unit_direction.y() + 1.0);
-            return (1.0 - t) * Color::new(1.0, 1.0, 1.0) + t * Color::new(0.5, 0.7, 1.0);
+fn ray_color(ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
+    if depth <= 0 {
+        return Color::new(0.0, 0.0, 0.0);
+    }
+
+    if let Some(record) = world.hit(ray, 0.001, f64::INFINITY) {
+        match record.material.scatter(ray, &record) {
+            Some((attenuation, scattered)) => {
+                return attenuation * ray_color(&scattered, world, depth - 1);
+            }
+            None => {
+                return Color::new(0.0, 0.0, 0.0);
+            }
         }
     }
+
+    let unit_direction = vector_3d::unit_vector(&ray.direction);
+    let t = 0.5 * (unit_direction.y() + 1.0);
+    return (1.0 - t) * Color::new(1.0, 1.0, 1.0) + t * Color::new(0.5, 0.7, 1.0);
 }
 
 fn main() {
     // Image
     const ASPECT_RATIO: f64 = 16.0 / 9.0;
-    const IMAGE_WIDTH: i32 = 400;
+    const IMAGE_WIDTH: i32 = 1920;
     const IMAGE_HEIGHT: i32 = ((IMAGE_WIDTH as f64) / ASPECT_RATIO) as i32;
-    const SAMPLES_PER_PIXEL: i32 = 100;
+    const SAMPLES_PER_PIXEL: i32 = 1000;
+    const MAX_DEPTH: i32 = 50;
 
     // World
-    let mut world: Vec<Rc<dyn Hittable>> = vec![];
-    let sphere_one = Rc::new(Sphere::new(Point3D::new(0.0, 0.0, -1.0), 0.5));
-    world.push(sphere_one);
-    let sphere_two = Rc::new(Sphere::new(Point3D::new(0.0, -100.5, -1.0), 100.0));
-    world.push(sphere_two);
+    let mut world: Vec<Box<dyn Hittable>> = vec![];
+
+    let material_ground = Box::new(Lambertian::new(&Color::new(0.8, 0.8, 0.0)));
+    let material_center = Box::new(Lambertian::new(&Color::new(0.7, 0.3, 0.3)));
+    let material_left = Box::new(Metal::new(&Color::new(0.8, 0.8, 0.8)));
+    let material_right = Box::new(Metal::new(&Color::new(0.8, 0.6, 0.2)));
+
+    world.push(Box::new(Sphere::new(
+        Point3D::new(0.0, -100.5, -1.0),
+        100.0,
+        material_ground,
+    )));
+    world.push(Box::new(Sphere::new(
+        Point3D::new(0.0, 0.0, -1.0),
+        0.5,
+        material_center,
+    )));
+    world.push(Box::new(Sphere::new(
+        Point3D::new(-1.0, 0.0, -1.0),
+        0.5,
+        material_left,
+    )));
+    world.push(Box::new(Sphere::new(
+        Point3D::new(1.0, 0.0, -1.0),
+        0.5,
+        material_right,
+    )));
 
     // Camera
     let camera = Camera::new();
 
     // Render
-    let mut generator = rand::thread_rng();
-
     println!("P3\n{} {}\n255", IMAGE_WIDTH, IMAGE_HEIGHT);
 
-    for row in (0..IMAGE_HEIGHT).rev() {
-        eprint!("\rScanlines remaining: {:03}", row);
-        for column in 0..IMAGE_WIDTH {
-            let mut pixel_color = Color::new(0.0, 0.0, 0.0);
-            for _ in 0..SAMPLES_PER_PIXEL {
-                let u = ((column as f64) + generator.gen_range(0.0..1.0)) / ((IMAGE_WIDTH - 1) as f64);
-                let v = ((row as f64) + generator.gen_range(0.0..1.0)) / ((IMAGE_HEIGHT - 1) as f64);
-                let ray = camera.get_ray(u, v);
-                pixel_color += &ray_color(&ray, &world);
+    let remaining_scanlines = AtomicI32::new(IMAGE_HEIGHT);
+    let mut pixels: Vec<Pixel> = vec![];
+    let pixel_row = (0..(IMAGE_HEIGHT * IMAGE_WIDTH))
+        .into_par_iter()
+        .map(|count| (IMAGE_HEIGHT - (count / IMAGE_WIDTH), count % IMAGE_WIDTH))
+        .map(|(row, column)| {
+            if column % IMAGE_WIDTH == 0 {
+                let remaining = remaining_scanlines.fetch_sub(1, Ordering::Relaxed);
+                eprint!("\rScanlines remaining: {:03}", remaining);
             }
 
-            pixel_color.write_color(SAMPLES_PER_PIXEL);
-        }
+            let mut generator = rand::thread_rng();
+
+            let mut pixel_color = Color::new(0.0, 0.0, 0.0);
+            for _ in 0..SAMPLES_PER_PIXEL {
+                let u =
+                    ((column as f64) + generator.gen_range(0.0..1.0)) / ((IMAGE_WIDTH - 1) as f64);
+                let v =
+                    ((row as f64) + generator.gen_range(0.0..1.0)) / ((IMAGE_HEIGHT - 1) as f64);
+                let ray = camera.get_ray(u, v);
+                pixel_color += &ray_color(&ray, &world, MAX_DEPTH);
+            }
+
+            pixel_color.color_code(SAMPLES_PER_PIXEL)
+        })
+        .collect::<Vec<Pixel>>();
+    pixels.extend(pixel_row);
+
+    // Write the pixels to the file
+    for pixel in pixels {
+        pixel.write_color();
     }
+
     eprintln!("\nDone!");
 }
