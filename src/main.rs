@@ -10,7 +10,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use scene::hittable::Hittable;
 use util::color::Color;
 
-use crate::{scene::{materials::{Dielectric, Lambertian, Metal}, sphere::Sphere}, util::{camera::Camera, color::Pixel, point::Point3D}};
+use crate::{geometry::vector_3d::Vector3D, scene::{materials::{Dielectric, Lambertian, Metal}, sphere::Sphere}, util::{camera::Camera, color::Pixel, point::Point3D}};
 
 fn ray_color(ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
     if depth <= 0 {
@@ -36,9 +36,9 @@ fn ray_color(ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
 fn main() {
     // Image
     const ASPECT_RATIO: f64 = 16.0 / 9.0;
-    const IMAGE_WIDTH: i32 = 1920;
+    const IMAGE_WIDTH: i32 = 600;
     const IMAGE_HEIGHT: i32 = ((IMAGE_WIDTH as f64) / ASPECT_RATIO) as i32;
-    const SAMPLES_PER_PIXEL: i32 = 1000;
+    const SAMPLES_PER_PIXEL: i32 = 100;
     const MAX_DEPTH: i32 = 50;
 
     // World
@@ -77,7 +77,13 @@ fn main() {
     )));
 
     // Camera
-    let camera = Camera::new();
+    let camera = Camera::new(
+        Point3D::new(-2.0, 2.0 , 1.0),
+        Point3D::new(0.0, 0.0, -1.0),
+        Vector3D::new(0.0, 1.0, 0.0),
+        20.0,
+        ASPECT_RATIO
+    );
 
     // Render
     println!("P3\n{} {}\n255", IMAGE_WIDTH, IMAGE_HEIGHT);
