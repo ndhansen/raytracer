@@ -95,6 +95,13 @@ impl Vector3D {
     pub fn reflect(&self, other: &Vector3D) -> Vector3D {
         *self - (2.0 * self.dot(other) * other)
     }
+
+    pub fn refract(&self, other: &Vector3D, etai_over_etat: f64) -> Vector3D {
+        let cos_theta = (-self).dot(other).min(1.0);
+        let r_out_perp = etai_over_etat * (self + (cos_theta * other));
+        let r_out_parallel = -((1.0 - r_out_perp.length_squared()).abs().sqrt()) * other;
+        r_out_perp + r_out_parallel
+    }
 }
 
 pub fn unit_vector(vec: &Vector3D) -> Vector3D {
@@ -168,6 +175,14 @@ impl RelativeEq for Vector3D {
 // Mathematical operations
 
 impl ops::Add<Vector3D> for Vector3D {
+    type Output = Vector3D;
+
+    fn add(self, rhs: Vector3D) -> Self::Output {
+        &self + rhs
+    }
+}
+
+impl ops::Add<Vector3D> for &Vector3D {
     type Output = Vector3D;
 
     fn add(self, rhs: Vector3D) -> Self::Output {

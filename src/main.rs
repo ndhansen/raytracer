@@ -4,22 +4,13 @@ pub mod util;
 
 use std::sync::atomic::{AtomicI32, Ordering};
 
-use geometry::{
-    ray::Ray,
-    vector_3d,
-};
+use geometry::{ray::Ray, vector_3d};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use scene::hittable::Hittable;
 use util::color::Color;
 
-use crate::{
-    scene::{
-        materials::{Lambertian, Metal},
-        sphere::Sphere,
-    },
-    util::{camera::Camera, color::Pixel, point::Point3D},
-};
+use crate::{scene::{materials::{Dielectric, Lambertian, Metal}, sphere::Sphere}, util::{camera::Camera, color::Pixel, point::Point3D}};
 
 fn ray_color(ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
     if depth <= 0 {
@@ -54,9 +45,10 @@ fn main() {
     let mut world: Vec<Box<dyn Hittable>> = vec![];
 
     let material_ground = Box::new(Lambertian::new(&Color::new(0.8, 0.8, 0.0)));
-    let material_center = Box::new(Lambertian::new(&Color::new(0.7, 0.3, 0.3)));
-    let material_left = Box::new(Metal::new(&Color::new(0.8, 0.8, 0.8)));
-    let material_right = Box::new(Metal::new(&Color::new(0.8, 0.6, 0.2)));
+    let material_center = Box::new(Lambertian::new(&Color::new(0.1, 0.2, 0.5)));
+    let material_left = Box::new(Dielectric::new(1.5));
+    let material_left_2 = Box::new(Dielectric::new(1.5));
+    let material_right = Box::new(Metal::new(&Color::new(0.8, 0.6, 0.2), 0.0));
 
     world.push(Box::new(Sphere::new(
         Point3D::new(0.0, -100.5, -1.0),
@@ -72,6 +64,11 @@ fn main() {
         Point3D::new(-1.0, 0.0, -1.0),
         0.5,
         material_left,
+    )));
+    world.push(Box::new(Sphere::new(
+        Point3D::new(-1.0, 0.0, -1.0),
+        -0.4,
+        material_left_2,
     )));
     world.push(Box::new(Sphere::new(
         Point3D::new(1.0, 0.0, -1.0),
@@ -93,7 +90,7 @@ fn main() {
         .map(|(row, column)| {
             if column % IMAGE_WIDTH == 0 {
                 let remaining = remaining_scanlines.fetch_sub(1, Ordering::Relaxed);
-                eprint!("\rScanlines remaining: {:03}", remaining);
+                eprint!("\rScanlines remaining: {:04}", remaining);
             }
 
             let mut generator = rand::thread_rng();
