@@ -37,6 +37,10 @@ impl Vector3D {
         }
     }
 
+    pub fn all_random() -> Vector3D {
+        Vector3D::random(0.0, 1.0)
+    }
+
     pub fn random_in_unit_sphere() -> Vector3D {
         loop {
             let vec = Vector3D::random(-1.0, 1.0);
@@ -49,6 +53,22 @@ impl Vector3D {
 
     pub fn random_unit_vector() -> Vector3D {
         unit_vector(&Vector3D::random_in_unit_sphere())
+    }
+
+    pub fn random_in_unit_disk() -> Vector3D {
+        loop {
+            let mut generator = rand::thread_rng();
+            let random_vector = Vector3D::new(
+                generator.gen_range(-1.0..1.0),
+                generator.gen_range(-1.0..1.1),
+                0.0
+            );
+            // TODO: There's got to be a faster way to do this
+            if random_vector.length_squared() >= 1.0 {
+                continue;
+            }
+            return random_vector;
+        }
     }
 
     /// Get the x-axis coordinate

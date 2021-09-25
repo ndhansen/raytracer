@@ -10,7 +10,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use scene::hittable::Hittable;
 use util::color::Color;
 
-use crate::{geometry::vector_3d::Vector3D, scene::{materials::{Dielectric, Lambertian, Metal}, sphere::Sphere}, util::{camera::Camera, color::Pixel, point::Point3D}};
+use crate::{geometry::vector_3d::Vector3D, scene::{materials::{Dielectric, Lambertian, Material, Metal}, sphere::Sphere}, util::{camera::Camera, color::Pixel, point::Point3D}};
 
 fn ray_color(ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
     if depth <= 0 {
@@ -33,56 +33,77 @@ fn ray_color(ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
     return (1.0 - t) * Color::new(1.0, 1.0, 1.0) + t * Color::new(0.5, 0.7, 1.0);
 }
 
+fn random_scene() -> Vec<Box<dyn Hittable>> {
+    let mut world: Vec<Box<dyn Hittable>> = vec![];
+
+    let ground_material = Box::new(Lambertian::new(&Color::new(0.5, 0.5, 0.5)));
+    world.push(Box::new(Sphere::new(Point3D::new(0.0, -1000.0, 0.0), 1000.0, ground_material)));
+
+    let mut generator = rand::thread_rng();
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let choosen_material = generator.gen_range(0.0..0.5);
+            let center = Point3D::new(
+                (a as f64) + 0.9 * generator.gen_range(0.0..1.0),
+                0.2,
+                (b as f64) + 0.9 * generator.gen_range(0.0..1.0),
+            );
+
+            if (center - Point3D::new(4.0, 0.2, 0.0)).length() > 0.9 {
+                let sphere_material: Box<dyn Material> = if choosen_material < 0.8 {
+                    // diffuse
+                    let albedo = Color::all_random() * Color::all_random();
+                    Box::new(Lambertian::new(&albedo))
+                } else if choosen_material < 0.95 {
+                    let albedo = Color::random(0.5, 1.0);
+                    let fuzz = generator.gen_range(0.0..0.5);
+                    Box::new(Metal::new(&albedo, fuzz))
+                } else {
+                    Box::new(Dielectric::new(1.5))
+                };
+                world.push(Box::new(Sphere::new(center, 0.2, sphere_material)));
+            }
+        }
+    }
+
+    let dielectric = Box::new(Dielectric::new(1.5));
+    world.push(Box::new(Sphere::new(Point3D::new(0.0, 1.0, 0.0), 1.0, dielectric)));
+
+    let lambertian = Box::new(Lambertian::new(&Color::new(0.4, 0.2, 0.1)));
+    world.push(Box::new(Sphere::new(Point3D::new(-4.0, 1.0, 0.0), 1.0, lambertian)));
+
+    let metal = Box::new(Metal::new(&Color::new(0.7, 0.6, 0.5), 0.0));
+    world.push(Box::new(Sphere::new(Point3D::new(4.0, 1.0, 0.0), 1.0, metal)));
+
+    world
+}
+
 fn main() {
     // Image
-    const ASPECT_RATIO: f64 = 16.0 / 9.0;
-    const IMAGE_WIDTH: i32 = 600;
+    const ASPECT_RATIO: f64 = 3.0 / 2.0;
+    const IMAGE_WIDTH: i32 = 920;
     const IMAGE_HEIGHT: i32 = ((IMAGE_WIDTH as f64) / ASPECT_RATIO) as i32;
     const SAMPLES_PER_PIXEL: i32 = 100;
     const MAX_DEPTH: i32 = 50;
 
     // World
-    let mut world: Vec<Box<dyn Hittable>> = vec![];
-
-    let material_ground = Box::new(Lambertian::new(&Color::new(0.8, 0.8, 0.0)));
-    let material_center = Box::new(Lambertian::new(&Color::new(0.1, 0.2, 0.5)));
-    let material_left = Box::new(Dielectric::new(1.5));
-    let material_left_2 = Box::new(Dielectric::new(1.5));
-    let material_right = Box::new(Metal::new(&Color::new(0.8, 0.6, 0.2), 0.0));
-
-    world.push(Box::new(Sphere::new(
-        Point3D::new(0.0, -100.5, -1.0),
-        100.0,
-        material_ground,
-    )));
-    world.push(Box::new(Sphere::new(
-        Point3D::new(0.0, 0.0, -1.0),
-        0.5,
-        material_center,
-    )));
-    world.push(Box::new(Sphere::new(
-        Point3D::new(-1.0, 0.0, -1.0),
-        0.5,
-        material_left,
-    )));
-    world.push(Box::new(Sphere::new(
-        Point3D::new(-1.0, 0.0, -1.0),
-        -0.4,
-        material_left_2,
-    )));
-    world.push(Box::new(Sphere::new(
-        Point3D::new(1.0, 0.0, -1.0),
-        0.5,
-        material_right,
-    )));
+    let world = random_scene();
 
     // Camera
+    let look_from = Point3D::new(13.0, 2.0, 3.0);
+    let look_at = Point3D::new(0.0, 0.0, 0.0);
+    let v_up = Vector3D::new(0.0, 1.0, 0.0);
+    let dist_to_focus = 10.0;
+    let aperature = 0.1;
     let camera = Camera::new(
-        Point3D::new(-2.0, 2.0 , 1.0),
-        Point3D::new(0.0, 0.0, -1.0),
-        Vector3D::new(0.0, 1.0, 0.0),
+        look_from,
+        look_at,
+        v_up,
         20.0,
-        ASPECT_RATIO
+        ASPECT_RATIO,
+        aperature,
+        dist_to_focus,
     );
 
     // Render
