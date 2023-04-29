@@ -17,18 +17,20 @@ pub struct HitRecord<'a> {
 }
 
 impl<'a> HitRecord<'a> {
-    pub fn new(p: Point3D, normal: Vector3D, material: &'a dyn Material, t: f64, ray: &Ray) -> HitRecord<'a> {
+    pub fn new(
+        p: Point3D,
+        normal: Vector3D,
+        material: &'a dyn Material,
+        t: f64,
+        ray: &Ray,
+    ) -> HitRecord<'a> {
         let front_face = ray.direction.dot(&normal) < 0.0;
         HitRecord {
             p,
-            normal: if front_face {
-                normal
-            } else {
-                -normal
-            },
+            normal: if front_face { normal } else { -normal },
             t,
             front_face,
-            material
+            material,
         }
     }
 

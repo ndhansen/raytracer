@@ -10,7 +10,14 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use scene::hittable::Hittable;
 use util::color::Color;
 
-use crate::{geometry::vector_3d::Vector3D, scene::{materials::{Dielectric, Lambertian, Material, Metal}, sphere::Sphere}, util::{camera::Camera, color::Pixel, point::Point3D}};
+use crate::{
+    geometry::vector_3d::Vector3D,
+    scene::{
+        materials::{Dielectric, Lambertian, Material, Metal},
+        sphere::Sphere,
+    },
+    util::{camera::Camera, color::Pixel, point::Point3D},
+};
 
 fn ray_color(ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
     if depth <= 0 {
@@ -37,7 +44,11 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
     let mut world: Vec<Box<dyn Hittable>> = vec![];
 
     let ground_material = Box::new(Lambertian::new(&Color::new(0.5, 0.5, 0.5)));
-    world.push(Box::new(Sphere::new(Point3D::new(0.0, -1000.0, 0.0), 1000.0, ground_material)));
+    world.push(Box::new(Sphere::new(
+        Point3D::new(0.0, -1000.0, 0.0),
+        1000.0,
+        ground_material,
+    )));
 
     let mut generator = rand::thread_rng();
 
@@ -68,13 +79,25 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
     }
 
     let dielectric = Box::new(Dielectric::new(1.5));
-    world.push(Box::new(Sphere::new(Point3D::new(0.0, 1.0, 0.0), 1.0, dielectric)));
+    world.push(Box::new(Sphere::new(
+        Point3D::new(0.0, 1.0, 0.0),
+        1.0,
+        dielectric,
+    )));
 
     let lambertian = Box::new(Lambertian::new(&Color::new(0.4, 0.2, 0.1)));
-    world.push(Box::new(Sphere::new(Point3D::new(-4.0, 1.0, 0.0), 1.0, lambertian)));
+    world.push(Box::new(Sphere::new(
+        Point3D::new(-4.0, 1.0, 0.0),
+        1.0,
+        lambertian,
+    )));
 
     let metal = Box::new(Metal::new(&Color::new(0.7, 0.6, 0.5), 0.0));
-    world.push(Box::new(Sphere::new(Point3D::new(4.0, 1.0, 0.0), 1.0, metal)));
+    world.push(Box::new(Sphere::new(
+        Point3D::new(4.0, 1.0, 0.0),
+        1.0,
+        metal,
+    )));
 
     world
 }

@@ -61,7 +61,7 @@ impl Vector3D {
             let random_vector = Vector3D::new(
                 generator.gen_range(-1.0..1.0),
                 generator.gen_range(-1.0..1.1),
-                0.0
+                0.0,
             );
             // TODO: There's got to be a faster way to do this
             if random_vector.length_squared() >= 1.0 {
