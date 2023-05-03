@@ -30,6 +30,7 @@ impl Material for Metal {
         let scattered = Ray::new(
             record.p,
             reflected + self.fuzz * Vector3D::random_in_unit_sphere(),
+            Some(ray.time),
         );
         let attenuation = self.albedo;
         if vector_3d::dot(&scattered.direction, &record.normal) > 0.0 {

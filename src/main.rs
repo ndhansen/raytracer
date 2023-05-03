@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicI32, Ordering};
 use geometry::{ray::Ray, vector_3d};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use scene::hittable::Hittable;
+use scene::{hittable::Hittable, moving_sphere::MovingSphere};
 use util::color::Color;
 
 use crate::{
@@ -73,7 +73,22 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
                 } else {
                     Box::new(Dielectric::new(1.5))
                 };
-                world.push(Box::new(Sphere::new(center, 0.2, sphere_material)));
+
+                let sphere: Box<dyn Hittable> = if generator.gen_range(0.0..1.0) > 0.5 {
+                    let target_center =
+                        center + vector_3d::Vector3D::new(0.0, generator.gen_range(0.0..0.5), 0.0);
+                    Box::new(MovingSphere::new(
+                        center,
+                        target_center,
+                        0.2,
+                        sphere_material,
+                        0.0,
+                        1.0,
+                    ))
+                } else {
+                    Box::new(Sphere::new(center, 0.2, sphere_material))
+                };
+                world.push(sphere);
             }
         }
     }
@@ -105,7 +120,7 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
 fn main() {
     // Image
     const ASPECT_RATIO: f64 = 3.0 / 2.0;
-    const IMAGE_WIDTH: i32 = 920;
+    const IMAGE_WIDTH: i32 = 400;
     const IMAGE_HEIGHT: i32 = ((IMAGE_WIDTH as f64) / ASPECT_RATIO) as i32;
     const SAMPLES_PER_PIXEL: i32 = 100;
     const MAX_DEPTH: i32 = 50;
@@ -127,6 +142,8 @@ fn main() {
         ASPECT_RATIO,
         aperature,
         dist_to_focus,
+        0.0,
+        1.0,
     );
 
     // Render

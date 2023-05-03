@@ -1,3 +1,5 @@
+use rand::Rng;
+
 use crate::geometry::{
     ray::Ray,
     vector_3d::{self, Vector3D},
@@ -13,6 +15,8 @@ pub struct Camera {
     u: Vector3D,
     v: Vector3D,
     lens_radius: f64,
+    start_time: f64, // Shutter open time
+    end_time: f64,   // Shutter close time
 }
 
 impl Camera {
@@ -24,6 +28,8 @@ impl Camera {
         aspect_ratio: f64,
         aperature: f64,
         focus_distance: f64,
+        start_time: f64,
+        end_time: f64,
     ) -> Camera {
         let theta = vertical_fov.to_radians();
         let h = (theta / 2.0).tan();
@@ -49,18 +55,22 @@ impl Camera {
             u,
             v,
             lens_radius,
+            start_time,
+            end_time,
         }
     }
 
     pub fn get_ray(&self, s: f64, t: f64) -> Ray {
         let rd = self.lens_radius * Vector3D::random_in_unit_disk();
         let offset = self.u * rd.x() + self.v * rd.y();
+        let mut rng = rand::thread_rng();
 
         Ray::new(
             self.origin + offset,
             self.lower_left_corner + (s * self.horizontal) + (t * self.vertical)
                 - self.origin
                 - offset,
+            Some(rng.gen_range(self.start_time..self.end_time)),
         )
     }
 }

@@ -48,6 +48,9 @@ impl Material for Dielectric {
             unit_direction.refract(&record.normal, refraction_ratio)
         };
 
-        Some((Color::new(1.0, 1.0, 1.0), Ray::new(record.p, direction)))
+        Some((
+            Color::new(1.0, 1.0, 1.0),
+            Ray::new(record.p, direction, Some(ray.time)),
+        ))
     }
 }
