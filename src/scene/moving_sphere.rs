@@ -42,7 +42,6 @@ impl MovingSphere {
 
 impl Hittable for MovingSphere {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        // TODO: This is largely copied from Sphere, and should be rethought
         let oc = ray.origin - self.center(ray.time);
         let a = ray.direction.length_squared();
         let half_b = vector_3d::dot(&oc, &ray.direction);

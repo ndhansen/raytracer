@@ -8,18 +8,40 @@ use crate::geometry::{
 use super::point::Point3D;
 
 pub struct Camera {
+    /// Where the camera is located.
     origin: Point3D,
+    /// The lower left corner in the scene that we want to render.
     lower_left_corner: Point3D,
+    /// Vector representing the height of the scene (from camera perspective).
     horizontal: Vector3D,
+    /// Vector representing the width of the scene (from camera perspective).
     vertical: Vector3D,
+    /// "up" (y) vector of the camera.
     u: Vector3D,
+    /// "right" (x) vector of the camera.
     v: Vector3D,
+    /// Radius of the lens
     lens_radius: f64,
-    start_time: f64, // Shutter open time
-    end_time: f64,   // Shutter close time
+    /// Shutter open time
+    start_time: f64,
+    // Shutter close time
+    end_time: f64,
 }
 
 impl Camera {
+    /// Returns a new camera
+    ///
+    /// # Arguments
+    ///
+    /// * `look_from` - The point where the camera is located.
+    /// * `look_at` - The point that the camera is pointed at.
+    /// * `v_up` - The rotation of the camera.
+    /// * `vertical_fov` - Vertical field of view.
+    /// * `aspect_ratio` - Vertical to horizontal ratio.
+    /// * `aperature` - How large the camera lens is.
+    /// * `focus_distance` - What distance the camera is focusing on.
+    /// * `start_time` - When the shutter opens.
+    /// * `end_time` - When the shutter closes.
     pub fn new(
         look_from: Point3D,
         look_at: Point3D,

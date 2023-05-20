@@ -28,6 +28,7 @@ impl Vector3D {
         Vector3D { x, y, z }
     }
 
+    /// Generate a random vector in a cube.
     pub fn random(min: f64, max: f64) -> Vector3D {
         let mut generator = rand::thread_rng();
         Vector3D {
@@ -37,10 +38,12 @@ impl Vector3D {
         }
     }
 
+    /// Generate a random vector in a cube spanning from 0 to 1.
     pub fn all_random() -> Vector3D {
         Vector3D::random(0.0, 1.0)
     }
 
+    /// Generate a random vector in a sphere.
     pub fn random_in_unit_sphere() -> Vector3D {
         loop {
             let vec = Vector3D::random(-1.0, 1.0);
@@ -55,6 +58,7 @@ impl Vector3D {
         unit_vector(&Vector3D::random_in_unit_sphere())
     }
 
+    /// Generate a random vector in a circle.
     pub fn random_in_unit_disk() -> Vector3D {
         loop {
             let mut generator = rand::thread_rng();
@@ -63,7 +67,6 @@ impl Vector3D {
                 generator.gen_range(-1.0..1.1),
                 0.0,
             );
-            // TODO: There's got to be a faster way to do this
             if random_vector.length_squared() >= 1.0 {
                 continue;
             }
