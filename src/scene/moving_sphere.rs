@@ -1,9 +1,15 @@
 use crate::{
-    geometry::{ray::Ray, vector_3d},
+    geometry::{
+        ray::Ray,
+        vector_3d::{self, Vector3D},
+    },
     util::point::Point3D,
 };
 
-use super::{hit_record::HitRecord, hittable::Hittable, materials::Material};
+use super::{
+    bounding_box::AxisAlignedBoundingBox, hit_record::HitRecord, hittable::Hittable,
+    materials::Material,
+};
 
 pub struct MovingSphere {
     start_center: Point3D,
@@ -67,5 +73,19 @@ impl Hittable for MovingSphere {
         let record = HitRecord::new(ray.at(root), outward_normal, &*self.material, root, &ray);
 
         Some(record)
+    }
+
+    fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AxisAlignedBoundingBox> {
+        let start_box = AxisAlignedBoundingBox::new(
+            self.center(time_0) - Vector3D::new(self.radius, self.radius, self.radius),
+            self.center(time_1) + Vector3D::new(self.radius, self.radius, self.radius),
+        );
+        let end_box = AxisAlignedBoundingBox::new(
+            self.center(time_1) - Vector3D::new(self.radius, self.radius, self.radius),
+            self.center(time_1) + Vector3D::new(self.radius, self.radius, self.radius),
+        );
+        Some(AxisAlignedBoundingBox::surrounding_box(
+            &start_box, &end_box,
+        ))
     }
 }

@@ -1,7 +1,8 @@
 use crate::{geometry::ray::Ray, util::point::Point3D};
 
 use super::{
-    hit_record::HitRecord, hittable::Hittable, materials::Material, moving_sphere::MovingSphere,
+    bounding_box::AxisAlignedBoundingBox, hit_record::HitRecord, hittable::Hittable,
+    materials::Material, moving_sphere::MovingSphere,
 };
 
 /// A static sphere. Internally a moving sphere that starts and ends in the same place.
@@ -20,5 +21,9 @@ impl Sphere {
 impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         self.sphere.hit(ray, t_min, t_max)
+    }
+
+    fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AxisAlignedBoundingBox> {
+        self.sphere.bounding_box(time_0, time_1)
     }
 }
