@@ -1,8 +1,9 @@
 use crate::{geometry::ray::Ray, util::point::Point3D};
 
+#[derive(Debug, Clone, Copy)]
 pub struct AxisAlignedBoundingBox {
-    minimum: Point3D,
-    maximum: Point3D,
+    pub minimum: Point3D,
+    pub maximum: Point3D,
 }
 
 impl AxisAlignedBoundingBox {
@@ -51,7 +52,7 @@ impl AxisAlignedBoundingBox {
     /// * `t_min` - The start time for which we want to check an intersection.
     /// * `t_max` - The end time for which we want to check if we have an
     /// intersection.
-    pub fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> bool {
+    pub fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> bool {
         for axis in 0..3 {
             let intersection_0 = (self.minimum[axis] - ray.origin[axis]) / ray.direction[axis];
             let intersection_1 = (self.maximum[axis] - ray.origin[axis]) / ray.direction[axis];
