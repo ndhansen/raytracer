@@ -8,47 +8,87 @@ use crate::scene::{
 
 use super::ray::Ray;
 
-pub struct BvhNode<'a> {
-    left: &'a Box<dyn Hittable>,
-    right: &'a Box<dyn Hittable>,
+pub struct BvhNode {
+    left: Option<Box<dyn Hittable>>,
+    right: Option<Box<dyn Hittable>>,
     bounding_box: AxisAlignedBoundingBox,
 }
 
-impl<'a> BvhNode<'a> {
-    pub fn new(
-        src_objects: &'a Vec<Box<dyn Hittable>>,
-        start: usize,
-        end: usize,
-        time_0: f64,
-        time_1: f64,
-    ) -> BvhNode<'a> {
+impl Hittable for BvhNode {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        if !self.bounding_box.hit(ray, t_min, t_max) {
+            return None;
+        }
+
+        let left_hit = match &self.left {
+            Some(hittable) => hittable.hit(ray, t_min, t_max),
+            _ => None,
+        };
+        let left_time = match left_hit {
+            Some(rec) => rec.t,
+            None => t_max,
+        };
+
+        let right_hit = match &self.right {
+            Some(hittable) => hittable.hit(ray, t_min, left_time),
+            _ => None,
+        };
+
+        if right_hit.is_some() {
+            return right_hit;
+        }
+        left_hit
+    }
+
+    fn bounding_box(&self, _time_0: f64, _time_1: f64) -> Option<AxisAlignedBoundingBox> {
+        Some(self.bounding_box)
+    }
+}
+
+impl BvhNode {
+    pub fn new(mut src_objects: Vec<Box<dyn Hittable>>, time_0: f64, time_1: f64) -> BvhNode {
         let mut generator = rand::thread_rng();
         let axis = generator.gen_range(0..2);
-        let object_span = end - start;
 
-        let (left, right): (&Box<dyn Hittable>, &Box<dyn Hittable>) = if object_span == 1 {
-            (&src_objects[start], &src_objects[start])
-        } else if object_span == 2 {
-            let compare_results =
-                BvhNode::box_compare(&src_objects[start], &src_objects[start + 1], axis);
+        let (left, right) = if src_objects.len() == 1 {
+            (Some(src_objects.remove(0)), None)
+        } else if src_objects.len() == 2 {
+            let compare_results = BvhNode::box_compare(&src_objects[0], &src_objects[1], axis);
+            let second_item = src_objects.remove(1);
+            let first_item = src_objects.remove(0);
             if compare_results.is_lt() {
-                (&src_objects[start], &src_objects[start + 1])
+                (Some(first_item), Some(second_item))
             } else {
-                (&src_objects[start + 1], &src_objects[start])
+                (Some(second_item), Some(first_item))
             }
         } else {
             src_objects.sort_by(|left, right| BvhNode::box_compare(left, right, axis));
 
-            let mid = start + object_span / 2;
+            let mid = src_objects.len() / 2;
+            let right_objects = src_objects.split_off(mid);
+            let left_objects = src_objects;
             (
-                &Box::new(BvhNode::new(src_objects, start, mid, time_0, time_1)),
-                &Box::new(BvhNode::new(src_objects, mid, end, time_0, time_1)),
+                Some(Box::new(BvhNode::new(left_objects, time_0, time_1)) as Box<dyn Hittable>),
+                Some(Box::new(BvhNode::new(right_objects, time_0, time_1)) as Box<dyn Hittable>),
             )
         };
 
-        let left_box = left.bounding_box(time_0, time_1).unwrap();
-        let right_box = right.bounding_box(time_0, time_1).unwrap();
-        let surrounding_box = AxisAlignedBoundingBox::surrounding_box(&left_box, &right_box);
+        let left_box = match &left {
+            Some(left) => left.bounding_box(time_0, time_1),
+            _ => None,
+        };
+        let right_box = match &right {
+            Some(right) => right.bounding_box(time_0, time_1),
+            _ => None,
+        };
+        let surrounding_box = match (left_box, right_box) {
+            (Some(left_box), Some(right_box)) => {
+                AxisAlignedBoundingBox::surrounding_box(&left_box, &right_box)
+            }
+            (Some(left_box), None) => left_box,
+            (None, Some(right_box)) => right_box,
+            (None, None) => panic!("Tree didn't contain left or right node."),
+        };
         BvhNode {
             left,
             right,
@@ -66,29 +106,5 @@ impl<'a> BvhNode<'a> {
             return Ordering::Greater;
         }
         Ordering::Equal
-    }
-}
-
-impl Hittable for BvhNode<'_> {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        if !self.bounding_box.hit(ray, t_min, t_max) {
-            return None;
-        }
-
-        let left_hit = self.left.hit(ray, t_min, t_max);
-        let left_time = match left_hit {
-            Some(rec) => rec.t,
-            None => t_max,
-        };
-        let right_hit = self.right.hit(ray, t_min, left_time);
-
-        if right_hit.is_some() {
-            return right_hit;
-        }
-        left_hit
-    }
-
-    fn bounding_box(&self, time_0: f64, time_1: f64) -> Option<AxisAlignedBoundingBox> {
-        Some(self.bounding_box)
     }
 }

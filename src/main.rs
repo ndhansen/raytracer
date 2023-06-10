@@ -1,3 +1,5 @@
+#![feature(split_array)]
+
 pub mod geometry;
 pub mod scene;
 pub mod util;
