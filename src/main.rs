@@ -6,6 +6,7 @@ pub mod util;
 
 use std::sync::atomic::{AtomicI32, Ordering};
 
+use clap::Parser;
 use geometry::{ray::Ray, vector_3d};
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -13,13 +14,33 @@ use scene::{hittable::Hittable, moving_sphere::MovingSphere};
 use util::color::Color;
 
 use crate::{
-    geometry::vector_3d::Vector3D,
+    geometry::{bounded_volume_hierarchy::BvhNode, vector_3d::Vector3D},
     scene::{
         materials::{Dielectric, Lambertian, Material, Metal},
         sphere::Sphere,
     },
     util::{camera::Camera, color::Pixel, point::Point3D},
 };
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Samples to shoot per pixel
+    #[arg(short, long, default_value_t = 100)]
+    samples: i32,
+
+    /// Width in pixels of the image
+    #[arg(short, long, default_value_t = 100)]
+    width: i32,
+
+    /// Aspect ration (width)
+    #[arg(long, default_value_t = 3)]
+    aspect_ratio_width: i32,
+
+    /// Aspect ration (height)
+    #[arg(long, default_value_t = 2)]
+    aspect_ratio_height: i32,
+}
 
 fn ray_color(ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
     if depth <= 0 {
@@ -45,7 +66,7 @@ fn ray_color(ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
 fn random_scene() -> Vec<Box<dyn Hittable>> {
     let mut world: Vec<Box<dyn Hittable>> = vec![];
 
-    let ground_material = Box::new(Lambertian::new(&Color::new(0.5, 0.5, 0.5)));
+    let ground_material = Box::new(Lambertian::new(Color::new(0.5, 0.5, 0.5)));
     world.push(Box::new(Sphere::new(
         Point3D::new(0.0, -1000.0, 0.0),
         1000.0,
@@ -67,11 +88,11 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
                 let sphere_material: Box<dyn Material> = if choosen_material < 0.8 {
                     // diffuse
                     let albedo = Color::all_random() * Color::all_random();
-                    Box::new(Lambertian::new(&albedo))
+                    Box::new(Lambertian::new(albedo))
                 } else if choosen_material < 0.95 {
                     let albedo = Color::random(0.5, 1.0);
                     let fuzz = generator.gen_range(0.0..0.5);
-                    Box::new(Metal::new(&albedo, fuzz))
+                    Box::new(Metal::new(albedo, fuzz))
                 } else {
                     Box::new(Dielectric::new(1.5))
                 };
@@ -102,14 +123,14 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
         dielectric,
     )));
 
-    let lambertian = Box::new(Lambertian::new(&Color::new(0.4, 0.2, 0.1)));
+    let lambertian = Box::new(Lambertian::new(Color::new(0.4, 0.2, 0.1)));
     world.push(Box::new(Sphere::new(
         Point3D::new(-4.0, 1.0, 0.0),
         1.0,
         lambertian,
     )));
 
-    let metal = Box::new(Metal::new(&Color::new(0.7, 0.6, 0.5), 0.0));
+    let metal = Box::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0));
     world.push(Box::new(Sphere::new(
         Point3D::new(4.0, 1.0, 0.0),
         1.0,
@@ -120,15 +141,18 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
 }
 
 fn main() {
+    let args = Args::parse();
+
     // Image
-    const ASPECT_RATIO: f64 = 3.0 / 2.0;
-    const IMAGE_WIDTH: i32 = 400;
-    const IMAGE_HEIGHT: i32 = ((IMAGE_WIDTH as f64) / ASPECT_RATIO) as i32;
-    const SAMPLES_PER_PIXEL: i32 = 100;
+    let aspect_ratio: f64 = args.aspect_ratio_width as f64 / args.aspect_ratio_height as f64;
+    let image_width: i32 = args.width;
+    let image_height: i32 = ((image_width as f64) / aspect_ratio) as i32;
+    let samples_per_pixel: i32 = args.samples;
     const MAX_DEPTH: i32 = 50;
 
     // World
-    let world = random_scene();
+    let objects = random_scene();
+    let world = BvhNode::new(objects, 0.0, 1.0);
 
     // Camera
     let look_from = Point3D::new(13.0, 2.0, 3.0);
@@ -141,7 +165,7 @@ fn main() {
         look_at,
         v_up,
         20.0,
-        ASPECT_RATIO,
+        aspect_ratio,
         aperature,
         dist_to_focus,
         0.0,
@@ -149,15 +173,15 @@ fn main() {
     );
 
     // Render
-    println!("P3\n{} {}\n255", IMAGE_WIDTH, IMAGE_HEIGHT);
+    println!("P3\n{} {}\n255", image_width, image_height);
 
-    let remaining_scanlines = AtomicI32::new(IMAGE_HEIGHT);
+    let remaining_scanlines = AtomicI32::new(image_height);
     let mut pixels: Vec<Pixel> = vec![];
-    let pixel_row = (0..(IMAGE_HEIGHT * IMAGE_WIDTH))
+    let pixel_row = (0..(image_height * image_width))
         .into_par_iter()
-        .map(|count| (IMAGE_HEIGHT - (count / IMAGE_WIDTH), count % IMAGE_WIDTH))
+        .map(|count| (image_height - (count / image_width), count % image_width))
         .map(|(row, column)| {
-            if column % IMAGE_WIDTH == 0 {
+            if column % image_width == 0 {
                 let remaining = remaining_scanlines.fetch_sub(1, Ordering::Relaxed);
                 eprint!("\rScanlines remaining: {:04}", remaining);
             }
@@ -165,16 +189,16 @@ fn main() {
             let mut generator = rand::thread_rng();
 
             let mut pixel_color = Color::new(0.0, 0.0, 0.0);
-            for _ in 0..SAMPLES_PER_PIXEL {
+            for _ in 0..samples_per_pixel {
                 let u =
-                    ((column as f64) + generator.gen_range(0.0..1.0)) / ((IMAGE_WIDTH - 1) as f64);
+                    ((column as f64) + generator.gen_range(0.0..1.0)) / ((image_width - 1) as f64);
                 let v =
-                    ((row as f64) + generator.gen_range(0.0..1.0)) / ((IMAGE_HEIGHT - 1) as f64);
+                    ((row as f64) + generator.gen_range(0.0..1.0)) / ((image_height - 1) as f64);
                 let ray = camera.get_ray(u, v);
                 pixel_color += &ray_color(&ray, &world, MAX_DEPTH);
             }
 
-            pixel_color.color_code(SAMPLES_PER_PIXEL)
+            pixel_color.color_code(samples_per_pixel)
         })
         .collect::<Vec<Pixel>>();
     pixels.extend(pixel_row);

@@ -47,12 +47,18 @@ impl Hittable for BvhNode {
 
 impl BvhNode {
     pub fn new(mut src_objects: Vec<Box<dyn Hittable>>, time_0: f64, time_1: f64) -> BvhNode {
+        if src_objects.len() == 0 {
+            panic!("Can't construct BVH node without anything in it.")
+        }
+
         let mut generator = rand::thread_rng();
         let axis = generator.gen_range(0..2);
 
         let (left, right) = if src_objects.len() == 1 {
+            // If we have one element, put it in the left
             (Some(src_objects.remove(0)), None)
         } else if src_objects.len() == 2 {
+            // If we have two elements, put one in each side
             let compare_results = BvhNode::box_compare(&src_objects[0], &src_objects[1], axis);
             let second_item = src_objects.remove(1);
             let first_item = src_objects.remove(0);
@@ -62,6 +68,7 @@ impl BvhNode {
                 (Some(second_item), Some(first_item))
             }
         } else {
+            // If we have more than two elements, split the vector and call recursively
             src_objects.sort_by(|left, right| BvhNode::box_compare(left, right, axis));
 
             let mid = src_objects.len() / 2;
@@ -106,5 +113,134 @@ impl BvhNode {
             return Ordering::Greater;
         }
         Ordering::Equal
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        geometry::vector_3d::Vector3D,
+        scene::{materials::Dielectric, sphere::Sphere},
+    };
+
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn cant_construct_empty_bvh() {
+        BvhNode::new(vec![], 0.0, 1.0);
+    }
+
+    /// Given a sphere and a ray pointing at that sphere, check that we get a hit
+    #[test]
+    fn can_hit_sinlge_sphere() {
+        let hittables: Vec<Box<dyn Hittable>> = vec![Box::new(Sphere::new(
+            Vector3D::new(0.0, 0.0, 5.0),
+            1.0,
+            Box::new(Dielectric::new(1.0)),
+        ))];
+        let bvh = BvhNode::new(hittables, 0.0, 1.0);
+        let ray = Ray::new(
+            Vector3D::new(0.0, 0.0, 0.0),
+            Vector3D::new(0.0, 0.0, 10.0),
+            Some(0.0),
+        );
+        assert!(bvh.hit(&ray, 0.0, 1.0).is_some());
+    }
+
+    /// Test that we can't a sphere that is in the direction of the ray, but outside the time
+    /// window
+    #[test]
+    fn cant_hit_sinlge_sphere_outside_time_window() {
+        let hittables: Vec<Box<dyn Hittable>> = vec![Box::new(Sphere::new(
+            Vector3D::new(0.0, 0.0, 5.0),
+            1.0,
+            Box::new(Dielectric::new(1.0)),
+        ))];
+        let bvh = BvhNode::new(hittables, 0.0, 1.0);
+        let ray = Ray::new(
+            Vector3D::new(0.0, 0.0, 0.0),
+            Vector3D::new(0.0, 0.0, 1.0),
+            Some(0.0),
+        );
+        assert!(bvh.hit(&ray, 0.0, 1.0).is_none());
+    }
+
+    #[test]
+    fn can_hit_multiple() {
+        let hittables: Vec<Box<dyn Hittable>> = vec![
+            Box::new(Sphere::new(
+                Vector3D::new(0.0, -2.0, 5.0),
+                1.0,
+                Box::new(Dielectric::new(1.0)),
+            )),
+            Box::new(Sphere::new(
+                Vector3D::new(0.0, 2.0, 5.0),
+                1.0,
+                Box::new(Dielectric::new(1.0)),
+            )),
+            Box::new(Sphere::new(
+                Vector3D::new(2.0, 0.0, 5.0),
+                1.0,
+                Box::new(Dielectric::new(1.0)),
+            )),
+            Box::new(Sphere::new(
+                Vector3D::new(-2.0, 0.0, 5.0),
+                1.0,
+                Box::new(Dielectric::new(1.0)),
+            )),
+        ];
+        let bvh = BvhNode::new(hittables, 0.0, 1.0);
+
+        let ray = Ray::new(
+            Vector3D::new(0.0, 0.0, 0.0),
+            Vector3D::new(0.0, 4.0, 10.0),
+            Some(0.0),
+        );
+        assert!(bvh.hit(&ray, 0.0, 1.0).is_some());
+
+        let ray = Ray::new(
+            Vector3D::new(0.0, 0.0, 0.0),
+            Vector3D::new(0.0, -4.0, 10.0),
+            Some(0.0),
+        );
+        assert!(bvh.hit(&ray, 0.0, 1.0).is_some());
+
+        let ray = Ray::new(
+            Vector3D::new(0.0, 0.0, 0.0),
+            Vector3D::new(4.0, 0.0, 10.0),
+            Some(0.0),
+        );
+        assert!(bvh.hit(&ray, 0.0, 1.0).is_some());
+
+        let ray = Ray::new(
+            Vector3D::new(0.0, 0.0, 0.0),
+            Vector3D::new(-4.0, 0.0, 10.0),
+            Some(0.0),
+        );
+        assert!(bvh.hit(&ray, 0.0, 1.0).is_some());
+    }
+
+    #[test]
+    fn cant_hit_between_multiple() {
+        let hittables: Vec<Box<dyn Hittable>> = vec![
+            Box::new(Sphere::new(
+                Vector3D::new(0.0, -2.0, 5.0),
+                1.0,
+                Box::new(Dielectric::new(1.0)),
+            )),
+            Box::new(Sphere::new(
+                Vector3D::new(0.0, 2.0, 5.0),
+                1.0,
+                Box::new(Dielectric::new(1.0)),
+            )),
+        ];
+        let bvh = BvhNode::new(hittables, 0.0, 1.0);
+        let ray = Ray::new(
+            Vector3D::new(0.0, 0.0, 0.0),
+            Vector3D::new(0.0, 0.0, 10.0),
+            Some(0.0),
+        );
+        assert!(bvh.hit(&ray, 0.0, 1.0).is_none());
     }
 }

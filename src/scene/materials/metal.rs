@@ -15,10 +15,10 @@ pub struct Metal {
 }
 
 impl Metal {
-    pub fn new(albedo: &Color, fuzz: f64) -> Metal {
+    pub fn new(albedo: Color, fuzz: f64) -> Metal {
         let clamped_fuzz = if fuzz < 1.0 { fuzz } else { 1.0 };
         Metal {
-            albedo: *albedo,
+            albedo,
             fuzz: clamped_fuzz,
         }
     }

@@ -12,7 +12,9 @@ pub struct HitRecord<'a> {
     pub p: Point3D,
     pub normal: Vector3D,
     pub material: &'a dyn Material,
-    pub t: f64,
+    pub t: f64, // Time
+    pub u: f64, // Location of hit on object
+    pub v: f64, // Locaiton of hit on object
     pub front_face: bool,
 }
 
@@ -22,6 +24,8 @@ impl<'a> HitRecord<'a> {
         normal: Vector3D,
         material: &'a dyn Material,
         t: f64,
+        u: f64,
+        v: f64,
         ray: &Ray,
     ) -> HitRecord<'a> {
         let front_face = ray.direction.dot(&normal) < 0.0;
@@ -29,6 +33,8 @@ impl<'a> HitRecord<'a> {
             p,
             normal: if front_face { normal } else { -normal },
             t,
+            u,
+            v,
             front_face,
             material,
         }

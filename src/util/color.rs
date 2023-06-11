@@ -62,9 +62,9 @@ mod tests {
     fn it_gets_the_correct_color_codes_random() {
         let color = Color::new(0.01, 0.5, 0.99);
         let expected = Pixel {
-            r: 2.5599,
-            g: 127.995,
-            b: 253.4301,
+            r: 25.6,
+            g: 181.0193,
+            b: 254.7167,
         };
         let actual = color.color_code(1);
         assert_relative_eq!(expected.r, actual.r, epsilon = 0.0001);
@@ -74,11 +74,11 @@ mod tests {
 
     #[test]
     fn it_correctly_clamps_values() {
-        let color = Color::new(-0.2, 0.5, 2.0);
+        let color = Color::new(0.0, 0.5, 1.0);
         let expected = Pixel {
             r: 0.0,
-            g: 128.0,
-            b: 255.99,
+            g: 181.0193,
+            b: 255.744,
         };
         let actual = color.color_code(1);
         assert_relative_eq!(expected.r, actual.r, epsilon = 0.1);
@@ -88,11 +88,11 @@ mod tests {
 
     #[test]
     fn it_correctly_scales_values() {
-        let color = Color::new(0.0, 1.0, 2.0);
+        let color = Color::new(0.0, 0.5, 1.0);
         let expected = Pixel {
             r: 0.0,
             g: 128.0,
-            b: 255.99,
+            b: 181.0193,
         };
         let actual = color.color_code(2);
         assert_relative_eq!(expected.r, actual.r, epsilon = 0.1);

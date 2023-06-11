@@ -1,3 +1,5 @@
+use std::f64::consts::PI;
+
 use crate::{
     geometry::{
         ray::Ray,
@@ -44,6 +46,15 @@ impl MovingSphere {
             + ((time - self.start_time) / (self.end_time - self.start_time))
                 * (self.end_center - self.start_center)
     }
+
+    fn get_sphere_uv(point: &Point3D) -> (f64, f64) {
+        let theta = (-point.y()).acos();
+        let phi = (-point.z()).atan2(point.x()) + PI;
+
+        let u = phi / (2.0 * PI);
+        let v = theta / PI;
+        (u, v)
+    }
 }
 
 impl Hittable for MovingSphere {
@@ -70,7 +81,16 @@ impl Hittable for MovingSphere {
 
         let point = ray.at(root);
         let outward_normal = (point - self.center(ray.time)) / self.radius;
-        let record = HitRecord::new(ray.at(root), outward_normal, &*self.material, root, &ray);
+        let (u, v) = MovingSphere::get_sphere_uv(&outward_normal);
+        let record = HitRecord::new(
+            ray.at(root),
+            outward_normal,
+            &*self.material,
+            root,
+            u,
+            v,
+            &ray,
+        );
 
         Some(record)
     }

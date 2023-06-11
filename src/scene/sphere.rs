@@ -13,7 +13,7 @@ pub struct Sphere {
 impl Sphere {
     pub fn new(center: Point3D, radius: f64, material: Box<dyn Material>) -> Sphere {
         Sphere {
-            sphere: MovingSphere::new(center, center, radius, material, 0.0, 1.1),
+            sphere: MovingSphere::new(center, center, radius, material, 0.0, 1.0),
         }
     }
 }
