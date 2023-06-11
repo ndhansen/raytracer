@@ -19,6 +19,10 @@ impl<'a> Lambertian<'a> {
             albedo: Box::new(SolidColorTexture::new(albedo)),
         }
     }
+
+    pub fn from_texture(texture: Box<dyn Texture>) -> Lambertian<'a> {
+        Lambertian { albedo: texture }
+    }
 }
 
 impl<'a> Material for Lambertian<'a> {
