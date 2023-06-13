@@ -81,7 +81,7 @@ fn main() {
     // World
     let scene = match args.scene {
         Scenes::Balls => Scene::random_scene(aspect_ratio),
-        Scenes::TwoBalls => Scene::random_scene(aspect_ratio),
+        Scenes::TwoBalls => Scene::two_balls(aspect_ratio),
     };
 
     // Render

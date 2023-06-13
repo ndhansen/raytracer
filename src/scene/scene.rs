@@ -12,7 +12,28 @@ pub struct Scene {
 
 impl Scene {
     pub fn two_balls(aspect_ratio: f64) -> Scene {
-        todo!()
+        let objects = BvhNode::new(world::two_balls(), 0.0, 1.0);
+
+        // Camera
+        let look_from = Point3D::new(13.0, 2.0, 3.0);
+        let look_at = Point3D::new(0.0, 0.0, 0.0);
+        let vfov = 20.0;
+        let aperature = 0.0;
+        let dist_to_focus = 10.0;
+        let v_up = Vector3D::new(0.0, 1.0, 0.0);
+        let camera = Camera::new(
+            look_from,
+            look_at,
+            v_up,
+            vfov,
+            aspect_ratio,
+            aperature,
+            dist_to_focus,
+            0.0,
+            1.0,
+        );
+
+        Scene { camera, objects }
     }
 
     pub fn random_scene(aspect_ratio: f64) -> Scene {

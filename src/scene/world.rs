@@ -95,5 +95,28 @@ pub fn random_scene() -> Vec<Box<dyn Hittable>> {
 }
 
 pub fn two_balls() -> Vec<Box<dyn Hittable>> {
-    todo!()
+    let mut world: Vec<Box<dyn Hittable>> = vec![];
+    let checker_texture = Box::new(CheckerTexture::from_colors(
+        Color::new(0.2, 0.3, 0.1),
+        Color::new(0.9, 0.9, 0.9),
+    ));
+    let checker_material = Box::new(Lambertian::from_texture(checker_texture));
+    world.push(Box::new(Sphere::new(
+        Point3D::new(0.0, -10.0, 0.0),
+        10.0,
+        checker_material,
+    )));
+    // TODO: Make texture use a reference counter thather than box, so we don't need to construct
+    // multiple of them.
+    let checker_texture = Box::new(CheckerTexture::from_colors(
+        Color::new(0.2, 0.3, 0.1),
+        Color::new(0.9, 0.9, 0.9),
+    ));
+    let checker_material = Box::new(Lambertian::from_texture(checker_texture));
+    world.push(Box::new(Sphere::new(
+        Point3D::new(0.0, 10.0, 0.0),
+        10.0,
+        checker_material,
+    )));
+    world
 }

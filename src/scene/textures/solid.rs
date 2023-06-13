@@ -2,7 +2,7 @@ use crate::util::{color::Color, point::Point3D};
 
 use super::Texture;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SolidColorTexture {
     color: Color,
 }
